@@ -55,6 +55,16 @@ colxls =
 ################################################################################
 
 ### Prepare fertility schedules #-----------------------------------------------
+
+# aux functions for Coale-McNeil
+gs  = function( x ){
+  0.19465 * exp( -0.174 * ( x - 6.06 ) - exp( -0.288 * ( x - 6.06 ) ) )
+} 
+
+Gcm = function( a, a0, k ){
+  sapply( ( a - a0 ) / k, function( z ) if( z <= 0 ) 0 else integrate( gs, 0, z )$value )
+} 
+
 fert_param = 
   data.frame( 
     a0 = unlist(a0[,3:17]), 
@@ -71,7 +81,9 @@ fert_param = cbind(fert_param, matrix(data = NA, nrow = n_fert, ncol = length(12
 names(fert_param)[7:ncol(fert_param)] = paste0('f', 12:49)
 for(i in 1:nrow(fert_param)){
   print(i)
-  fert_param[i,7:ncol(fert_param)]= as.vector(CM(a0=fert_param$a0[i], k=fert_param$k[i])$G[10:60 %in% 12:49]*CT(m=fert_param$m[i], M=1))
+  #fert_param[i,7:ncol(fert_param)]= as.vector(CM(a0=fert_param$a0[i], k=fert_param$k[i])$G[10:60 %in% 12:49]*CT(m=fert_param$m[i], M=1))
+  fert_param[ i, 7:ncol( fert_param ) ] =
+    Gcm( 12:49 + 0.5, fert_param$a0[i], fert_param$k[i] ) * CT( m = fert_param$m[i], M = 1 )
   fert_param[i,7:ncol(fert_param)] = fert_param[i,7:ncol(fert_param)]/sum(fert_param[i,7:ncol(fert_param)])
 }
 meanf = apply(fert_param[, 7:ncol(fert_param)]*matrix(data= seq(12.5, 49.5, 1), nrow = n_fert, ncol = length(12:49), byrow= TRUE), 1, sum)
